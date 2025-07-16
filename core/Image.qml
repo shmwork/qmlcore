@@ -160,7 +160,7 @@ Item {
 				style['background-size'] = natW + 'px 100%'
 				break;
 			case ImageComponent.Tile:
-				style['background-repeat'] = 'repeat-y repeat-x'
+				style['background-repeat'] = 'repeat'
 				style['background-size'] = 'auto'
 				break;
 			case ImageComponent.PreserveAspectCrop:

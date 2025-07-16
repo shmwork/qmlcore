@@ -44,7 +44,11 @@ if [ ! -d ${APP_DIR} ]; then
 	popd
 else
 	pushd ${BUILD_DIR}
-	git -C qmlcore-android pull --depth=1
+	git -C qmlcore-android fetch origin master --depth=1
+	git -C qmlcore-android reset --hard origin/master
+
+	#echo git -C qmlcore-android pull --depth=1
+	#git -C qmlcore-android pull --depth=1 origin master
 	popd
 fi
 
@@ -76,6 +80,7 @@ DST_DIR=${BUILD_DIR}/app
 
 rm -rf ${DST_DIR}
 mkdir -p ${DST_DIR}
+echo git -C ${APP_DIR} checkout-index -a --prefix=${DST_DIR}/
 git -C ${APP_DIR} checkout-index -a --prefix=${DST_DIR}/
 
 ASSETS_DIR="${DST_DIR}/app/src/main/assets"

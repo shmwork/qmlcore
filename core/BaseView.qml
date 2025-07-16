@@ -14,7 +14,7 @@ BaseLayout {
 	property bool contentFollowsCurrentItem: !nativeScrolling;	///< auto-scroll content to current focused item
 	property bool nativeScrolling: context.system.device === context.system.Mobile; ///< allows native scrolling on mobile targets and shows native scrollbars
 	property real prerender: 0.5;	///< allocate additional delegates by viewport (prerender * horizontal/vertical view size) px
-	property enum positionMode		{ Contain, Center, Visible, Page, End }; ///< position mode for auto-scrolling/position methods
+	property enum positionMode		{ Contain, Center, Visible, Page, End, FixedCenter, FixedStart }; ///< position mode for auto-scrolling/position methods
 	property string visibilityProperty; ///< if this property is false, delegate is not created at all
 	contentWidth: 1;				///< content width
 	contentHeight: 1;				///< content height
@@ -354,8 +354,14 @@ BaseLayout {
 		var atCenter = x - w / 2 + iw / 2
 		if (iw > w)
 			this.contentX = centerOversized? atCenter: x
+		else if (this.positionMode === this.FixedCenter)
+			this.contentX = atCenter
+		else if (this.positionMode === this.FixedStart)
+			this.contentX = x - cml
 		else if (center && this.contentWidth > w)
 			this.contentX = atCenter < -cml ? -cml : x > this.contentWidth - w / 2 - iw / 2 + cmr ? this.contentWidth - w + cmr : atCenter
+		// else if (center)
+			// this.contentX = atCenter
 		else if (x <= cml)
 			this.contentX = -cml
 		else if (x - cx <= 0)
@@ -375,6 +381,10 @@ BaseLayout {
 		var atCenter = y - h / 2 + ih / 2
 		if (ih > h)
 			this.contentY = centerOversized? atCenter: y
+		else if (this.positionMode === this.FixedCenter)
+			this.contentY = atCenter
+		else if (this.positionMode === this.FixedStart)
+			this.contentY = y - cmt
 		else if (center && this.contentHeight > h)
 			this.contentY = atCenter < -cmt ? -cmt : y > this.contentHeight - h / 2 - ih / 2 + cmb ? this.contentHeight - h + cmb : atCenter
 		else if (y <= cmt)
