@@ -61,7 +61,7 @@ var Player = function(ui) {
 	}
 
 	this.videojsContaner = document.getElementById(uniqueId)
-	this.videojsContaner.style.zindex = -1
+	this.videojsContaner.style.zIndex = -1
 }
 
 Player.prototype = Object.create(_globals.video.html5.backend.Player.prototype)

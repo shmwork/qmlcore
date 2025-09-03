@@ -165,10 +165,42 @@ Item {
 	}
 
 	///increase current volume
-	volumeUp: { this.volume += 0.1 }
+	volumeUp(vol): {
+		var player = this._getPlayer()
+		if (player){
+			player.volumeUp(vol)
+		} else {
+			this.volume += 0.1
+		}
+	}
 
 	///decrease current volume
-	volumeDown: { this.volume -= 0.1 }
+	volumeDown(vol): {
+		var player = this._getPlayer()
+		if (player){
+			player.volumeDown(vol)
+		} else {
+			this.volume -= 0.1
+		}
+	}
+
+	volumeMute(vol):{
+		var player = this._getPlayer()
+		if (player){
+			player.volumeMute(vol)
+		} else {
+			this.volume = vol
+		}
+	}
+
+	getVolume: {
+		var player = this._getPlayer()
+		if (player){
+			return player.getVolume()
+		} else {
+			return this.volume
+		}
+	}
 
 	///@private
 	onVolumeChanged: { this.applyVolume() }
