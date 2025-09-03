@@ -620,6 +620,9 @@ exports.init = function(ctx) {
 
 	var translateKey = function(event) {
 		var keyCode = event.which || event.keyCode
+		if (event.shiftKey){
+			keyCode = "shift"+keyCode
+		}
 		var key = $core.keyCodes[keyCode]
 		if (key === undefined && event.code) {
 			key = event.code
