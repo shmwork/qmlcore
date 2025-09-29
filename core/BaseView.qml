@@ -84,7 +84,7 @@ BaseLayout {
 
 	/// @private focuses current item
 	function focusCurrent() {
-		var n = this.count
+		var n = this.model.count
 		if (n === 0)
 			return
 
