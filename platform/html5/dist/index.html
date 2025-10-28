@@ -5,6 +5,27 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
 	{% block head %}{% endblock %}
+	<style>
+		.vjs-text-track-display {
+		z-index: 100000000;
+		display: contents;
+		justify-content: center;
+		align-items: flex-end;
+		width: 100%;
+		background-color: rgb(0, 0, 0);
+		}
+		.vjs-text-track-display div {
+			z-index: 100000000;
+
+  			font-size: 1.4em !important;
+			padding: 0.5em 1em;
+			border-radius: 0.3em;
+			width: 85%;
+			text-align: center;
+			margin-top: 59%;
+			margin-left: 5%;	
+		}
+	</style>
 	<script src="{{ baseurl }}modernizr-custom.js"></script>
 </head>
 <body>
