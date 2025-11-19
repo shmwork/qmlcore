@@ -36,6 +36,10 @@ exports.init = function(ctx) {
 		log("activeChanged " + active)
 		ctx.system.pageActive = active
 	}))
+	nativeContext.on('networkStatus', ctx.wrapNativeCallback(function(active) {
+		log("networkStatus " + active)
+		ctx.system.networkStatus = active
+	}))
 	log('window size', ctx.width, ctx.height)
 	exports._deviceInfo = fd.getDeviceInfo()
 }

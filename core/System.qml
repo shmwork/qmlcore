@@ -12,6 +12,7 @@ Object {
 	property bool portrait: parent.width < parent.height;	///< portrait oriented screen flag
 	property bool landscape: !portrait;				///< landscape oriented screen flag
 	property bool pageActive: true;					///< page active flag
+	property bool networkStatus;					///< network active flag
 	property int screenWidth;						///< device screen width value
 	property int screenHeight;						///< device screen height value
 	property int contextWidth: context.width;		///< @private
