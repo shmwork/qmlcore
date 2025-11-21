@@ -256,8 +256,10 @@ Item {
 	 */
 	setSubtitles(trackId): {
 		var player = this._getPlayer()
-		if (player)
+		if (player && player.setSubtitles)
 			player.setSubtitles(trackId)
+		else
+			log("Невозможно установить субтитры, не найден player или метод player.setSubtitles")
 	}
 
 	/**
