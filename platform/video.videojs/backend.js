@@ -307,7 +307,7 @@ Player.prototype.setSource = function(url) {
 Player.prototype.getSubtitles = function() {
 	var tracks = this.videojs.textTracks();
 	var subsTracks = [];
-	subsTracks.push({ id: "off", label: "Выкл" });
+	subsTracks.push({ id: "off", label: "Выкл", active: true });
 
 	var i;
 	if (tracks && tracks.tracks_) {

@@ -40,12 +40,11 @@ if [ ! -d ${APP_DIR} ]; then
 	echo "installing android runtime..."
 	mkdir -p ${BUILD_DIR}
 	pushd ${BUILD_DIR}
-	git clone --depth=1 https://github.com/shmwork/qmlcore-android.git
+	cp -r ../qmlcore-android .
 	popd
 else
 	pushd ${BUILD_DIR}
-	git -C qmlcore-android fetch origin master --depth=1
-	git -C qmlcore-android reset --hard origin/master
+	git -C qmlcore-android pull
 
 	#echo git -C qmlcore-android pull --depth=1
 	#git -C qmlcore-android pull --depth=1 origin master
@@ -80,8 +79,14 @@ DST_DIR=${BUILD_DIR}/app
 
 rm -rf ${DST_DIR}
 mkdir -p ${DST_DIR}
-echo git -C ${APP_DIR} checkout-index -a --prefix=${DST_DIR}/
-git -C ${APP_DIR} checkout-index -a --prefix=${DST_DIR}/
+# Создаём временный коммит
+git -C ${APP_DIR} commit -am "temp commit" --allow-empty || true
+
+# Экспортируем последнюю версию (включая изменения)
+git -C ${APP_DIR} archive HEAD | tar -x -C ${DST_DIR}
+
+# Отменяем временный коммит
+git -C ${APP_DIR} reset --soft HEAD~1
 
 ASSETS_DIR="${DST_DIR}/app/src/main/assets"
 rm "${ASSETS_DIR}/.keep"

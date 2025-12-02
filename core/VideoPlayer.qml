@@ -12,7 +12,7 @@ Item {
 	property bool	loop;		///< video loop flag
 	property bool	ready;		///< read only property becomes 'true' when video is ready to play, 'false' otherwise
 	property bool	muted;		///< volume mute flag
-	property bool	paused;		///< video paused flag
+	property bool	paused: true;		///< video paused flag
 	property bool	waiting;	///< wating flag while video is seeking and not ready to continue playing
 	property bool	seeking;	///< seeking flag
 	property bool	stalled;	///< playback stalled
