@@ -67,31 +67,22 @@ Player.prototype._addListener = function(target, type, fn, opts) {
 
 // Remove listeners and dispose videojs properly
 Player.prototype.dispose = function() {
-	try {
-		var i;
-		if (this._eventListeners) {
-			for (i = 0; i < this._eventListeners.length; ++i) {
-				var rec = this._eventListeners[i];
-				if (!rec) continue;
-				try {
-					rec.target.removeEventListener(rec.type, rec.fn, rec.opts || false);
-				} catch (e) {}
-			}
-			this._eventListeners = [];
+	if (this._eventListeners) {
+		for (var i = 0; i < this._eventListeners.length; ++i) {
+			var rec = this._eventListeners[i];
+			if (!rec) continue;
+			rec.target.removeEventListener(rec.type, rec.fn, rec.opts || false);
 		}
-	} catch (e) {}
+		this._eventListeners = [];
+	}
 
-	try {
-		if (this.videojsContaner) {
-			window.videojs(this.videojsContaner).dispose();
-		}
-	} catch (e) {}
+	if (this.videojsContaner) {
+		window.videojs(this.videojsContaner).dispose();
+	}
 
-	try {
-		if (this.videojs && this.videojs.dispose) {
-			this.videojs.dispose();
-		}
-	} catch (e) { }
+	if (this.videojs && this.videojs.dispose) {
+		this.videojs.dispose();
+	}
 	this.videojs = null;
 
 	_globals.video.html5.backend.Player.prototype.dispose.apply(this);
@@ -107,23 +98,12 @@ Player.prototype._syncState = function() {
 		var readyState = typeof video.readyState === 'number' ? video.readyState : 0;
 		var currentTime = isFinite(video.currentTime) ? video.currentTime : 0;
 		var duration = isFinite(video.duration) ? video.duration : (this.ui.duration || 0);
-
-		// Map paused: include ended and no-src as paused-like states per your requirement
 		this.ui.paused = (paused || ended || !video.src);
-
-		// waiting when not enough data (readyState < HAVE_FUTURE_DATA)
 		this.ui.waiting = (readyState < 3);
-
-		// seeking: prefer internal flag or DOM seeking
 		this.ui.seeking = !!this._seekingFlag || !!video.seeking;
-
-		// progress / duration
 		this.ui.progress = currentTime;
 		this.ui.duration = duration;
-
-		// ready: consider ready when HAVE_FUTURE_DATA or higher (3 or 4)
 		this.ui.ready = (readyState >= 3);
-
 		log('syncState -> paused:', this.ui.paused, 'waiting:', this.ui.waiting, 'seeking:', this.ui.seeking,
 			'readyState:', readyState, 'currentTime:', currentTime, 'duration:', duration);
 	} catch (e) {
@@ -131,150 +111,111 @@ Player.prototype._syncState = function() {
 	}
 };
 
-// Attach DOM events to <video> element (ES5)
+// Attach DOM events to <video> element
 Player.prototype.setEventListeners = function() {
 	var video = this.element && this.element.dom;
 	var self = this;
 	if (!video) return;
 
 	var _syncTimer = null;
-	function scheduleSync(delay) {
-		delay = typeof delay === 'number' ? delay : 50;
+	function scheduleSync() {
 		if (_syncTimer) {
 			clearTimeout(_syncTimer);
 			_syncTimer = null;
 		}
 		_syncTimer = setTimeout(function() {
-			try { self._syncState(); } catch (e) {}
+			self._syncState();
 			_syncTimer = null;
-		}, delay);
+		}, 50);
 	}
-
-	// loadedmetadata
 	this._addListener(video, 'loadedmetadata', function() {
-		try { self.ui.duration = video.duration || self.ui.duration; } catch (e) {}
-		scheduleSync(0);
+		self.ui.duration = video.duration || self.ui.duration;
+		scheduleSync();
 	});
-
-	// canplay / canplaythrough
 	this._addListener(video, 'canplay', function() {
-		try { self.ui.waiting = false; } catch (e) {}
-		scheduleSync(0);
+		self.ui.waiting = false;
+		scheduleSync();
 	});
 	this._addListener(video, 'canplaythrough', function() {
-		scheduleSync(0);
+		scheduleSync();
 	});
-
-	// play / playing
 	this._addListener(video, 'play', function() {
-		try { self.ui.paused = false; } catch (e) {}
-		scheduleSync(150);
+		self.ui.paused = false;
+		scheduleSync();
 	});
 	this._addListener(video, 'playing', function() {
-		try { self.ui.waiting = false; } catch (e) {}
-		scheduleSync(0);
+		self.ui.waiting = false;
+		scheduleSync();
 	});
-
-	// pause
 	this._addListener(video, 'pause', function() {
-		try { self.ui.paused = true; } catch (e) {}
-		scheduleSync(0);
+		self.ui.paused = true;
+		scheduleSync();
 	});
-
-	// ended
 	this._addListener(video, 'ended', function() {
-		try { self.ui.paused = true; } catch (e) {}
-		try { if (self.ui.finished) self.ui.finished(); } catch (e) {}
-		scheduleSync(0);
+		self.ui.paused = true;
+		if (self.ui.finished) self.ui.finished();
+		scheduleSync();
 	});
-
-	// waiting / stalled (buffering)
 	this._addListener(video, 'waiting', function() {
-		try { self.ui.waiting = true; } catch (e) {}
-		scheduleSync(0);
+		self.ui.waiting = true;
+		scheduleSync();
 	});
 	this._addListener(video, 'stalled', function() {
-		try { self.ui.waiting = true; } catch (e) {}
-		scheduleSync(0);
+		self.ui.waiting = true;
+		scheduleSync();
 	});
-
-	// seeking / seeked
 	this._addListener(video, 'seeking', function() {
 		self._seekingFlag = true;
-		try { self.ui.seeking = true; } catch (e) {}
-		scheduleSync(0);
+		self.ui.seeking = true;
+		scheduleSync();
 	});
 	this._addListener(video, 'seeked', function() {
 		self._seekingFlag = false;
-		try { self.ui.seeking = false; } catch (e) {}
-		scheduleSync(0);
+		self.ui.seeking = false;
+		scheduleSync();
 	});
-
-	// timeupdate
 	this._addListener(video, 'timeupdate', function() {
-		try { self.ui.progress = video.currentTime; } catch (e) {}
-		scheduleSync(400);
+		self.ui.progress = video.currentTime;
+		scheduleSync();
 	});
-
-	// error
 	this._addListener(video, 'error', function(e) {
 		log('video error', e, video.error);
-		try {
-			self.ui.ready = false;
-			if (self.ui.error) self.ui.error({ type: 'MEDIA_ERROR', message: String(video.error) });
-		} catch (ex) {}
-		scheduleSync(0);
+		self.ui.ready = false;
+		if (self.ui.error) self.ui.error({ type: 'MEDIA_ERROR', message: String(video.error) });
+		scheduleSync();
 	});
-
-	// loadeddata to ensure sync after initial data
 	this._addListener(video, 'loadeddata', function() {
-		scheduleSync(0);
+		scheduleSync();
 	});
-
-	// emptied: fired when the media element has been emptied (e.g., src removed or set to empty)
 	this._addListener(video, 'emptied', function() {
-		try {
-			// consider emptied as paused-like state (matches your mapping)
-			self.ui.paused = true;
-			self.ui.waiting = false;
-			self.ui.seeking = false;
-			// progress may reset to 0
-			try { self.ui.progress = 0; } catch (e) {}
-		} catch (e) {}
-		scheduleSync(0);
+		self.ui.paused = true;
+		self.ui.waiting = false;
+		self.ui.seeking = false;
+		self.ui.progress = 0;
+		scheduleSync();
 	});
-
-	// loadstart: useful to mark waiting when a new src is assigned
 	this._addListener(video, 'loadstart', function() {
-		try { self.ui.waiting = true; } catch (e) {}
-		scheduleSync(0);
+		self.ui.waiting = true;
+		scheduleSync();
 	});
 };
 
-// setSource: keep behaviour, but pause current video and set ui.paused so it doesn't "stick"
 Player.prototype.setSource = function(url) {
 	var media = { 'src': url };
 	log("SetSource", url);
 
-	// ensure current playback is paused and UI reflects it before switching src
-	try {
-		if (this.element && this.element.dom) {
-			try {
-				// pause existing playback (may be a no-op if already paused)
-				if (typeof this.element.dom.pause === 'function') {
-					this.element.dom.pause();
-				}
-			} catch (e_pause) {
-				log("pause before setSource failed", e_pause);
+	if (this.element && this.element.dom) {
+		try {
+			if (typeof this.element.dom.pause === 'function') {
+				this.element.dom.pause();
 			}
-			// set paused-like flags immediately so UI won't remain in playing state
-			try { this.ui.paused = true; } catch (e) {}
-			try { this.ui.waiting = true; } catch (e) {}
-			try { this.ui.seeking = false; } catch (e) {}
-			try { this.ui.ready = false; } catch (e) {}
+		} catch (e_pause) {
+			log("pause before setSource failed", e_pause);
 		}
-	} catch (e) {
-		log("pre-setSource guard failed", e);
+		this.ui.paused = true
+		this.ui.waiting = true
+		this.ui.seeking = false
+		this.ui.ready = false
 	}
 
 	if (url) {
@@ -297,21 +238,19 @@ Player.prototype.setSource = function(url) {
 	}
 
 	var self = this;
-	// give video/videojs small time to update DOM/state, then sync
-	setTimeout(function(){ try { self._syncState(); } catch (e) {} }, 120);
+	// give video/videojs small time to update state, then sync
+	setTimeout(function(){ self._syncState(); }, 80);
 
 	if (this.ui.autoPlay) this.play();
 };
 
-// getSubtitles: ES5-safe iteration
 Player.prototype.getSubtitles = function() {
 	var tracks = this.videojs.textTracks();
 	var subsTracks = [];
 	subsTracks.push({ id: "off", label: "Выкл", active: true });
 
-	var i;
 	if (tracks && tracks.tracks_) {
-		for (i = 0; i < tracks.tracks_.length; ++i) {
+		for (var i = 0; i < tracks.tracks_.length; ++i) {
 			var track = tracks.tracks_[i];
 			log(track.label);
 			if (track.kind == "subtitles") {
@@ -327,7 +266,6 @@ Player.prototype.getSubtitles = function() {
 	return subsTracks;
 };
 
-// setSubtitles: ES5-compatible, no Array.find / map used for side effects
 Player.prototype.setSubtitles = function(trackId) {
 	var tracks = this.videojs.textTracks().tracks_;
 	var subTrack = null;
@@ -340,42 +278,31 @@ Player.prototype.setSubtitles = function(trackId) {
 	}
 
 	for (i = 0; i < tracks.length; ++i) {
-		try {
-			if (subTrack && tracks[i].id === subTrack.id) {
-				tracks[i].mode = 'showing';
-			} else {
-				tracks[i].mode = 'disabled';
-			}
-		} catch (e) {}
+		if (subTrack && tracks[i].id === subTrack.id) {
+			tracks[i].mode = 'showing';
+		} else {
+			tracks[i].mode = 'disabled';
+		}
 	}
 };
 
 Player.prototype.play = function() {
+	this.ui.paused = false;
+
 	try {
-		// optimistic update so UI doesn't remain in "paused" when switching sources quickly
-		try { this.ui.paused = false; } catch (e) {}
-
-		// attempt to play (may or may not return a Promise on the platform; we don't rely on it)
-		try {
-			this.element.dom.play();
-		} catch (e_play) {
-			log('play() DOM call threw', e_play);
-		}
-
-		// schedule confirmations — rely on events and state sync (_syncState)
-		var self = this;
-		setTimeout(function() {
-			try { self._syncState(); } catch (e) {}
-		}, 200);
-
-		setTimeout(function() {
-			try { self._syncState(); } catch (e) {}
-		}, 800);
-
-	} catch (e) {
-		log('play() outer error', e);
-		try { this._syncState(); } catch (ex) {}
+		this.element.dom.play();
+	} catch (e_play) {
+		log('play() DOM call threw', e_play);
 	}
+
+	var self = this;
+	setTimeout(function() {
+		self._syncState();
+	}, 80);
+
+	setTimeout(function() {
+		self._syncState()
+	}, 80);
 };
 
 Player.prototype.setRect = function(l, t, r, b) {
