@@ -6,7 +6,7 @@ exports.createPlayer = function(ui) {
 
 	var resetState = function() {
 		ui.ready = false
-		ui.paused = false
+		ui.paused = true
 		ui.waiting = false
 		ui.seeking = false
 		ui.stalled = false
