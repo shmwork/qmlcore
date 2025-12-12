@@ -41,13 +41,10 @@ if [ ! -d ${APP_DIR} ]; then
 	mkdir -p ${BUILD_DIR}
 	pushd ${BUILD_DIR}
 	cp -r ../qmlcore-android .
+	rm -r /qmlcore-android/.git
 	popd
 else
 	pushd ${BUILD_DIR}
-	git -C qmlcore-android pull
-
-	#echo git -C qmlcore-android pull --depth=1
-	#git -C qmlcore-android pull --depth=1 origin master
 	popd
 fi
 
