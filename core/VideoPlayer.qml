@@ -21,6 +21,7 @@ Item {
 	property real	progress;	///< current playback progress in seconds
 	property real	buffered;	///< how much content to buffer in seconds
 	property real	startPosition;	///< second at which the video should start playback
+	property bool	mode; ///< some players require define mode
 
 	///@private
 	constructor: {
@@ -299,6 +300,15 @@ Item {
 	onError(error): {
 		this.paused = false
 		this.waiting = false
+	}
+
+	forceSetSource(url): {
+		var player = this._getPlayer()
+		if (url && player) {
+			player.setSource(url)
+		} else {
+			log('WARNING: skipping VideoPlayer.forceSetSource')
+		}
 	}
 
 	///@private
