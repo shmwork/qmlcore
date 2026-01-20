@@ -21,7 +21,7 @@ Item {
 	property real	progress;	///< current playback progress in seconds
 	property real	buffered;	///< how much content to buffer in seconds
 	property real	startPosition;	///< second at which the video should start playback
-	property bool	mode; ///< some players require define mode
+	property string mode;	///< some platforms requered define mode
 
 	///@private
 	constructor: {
@@ -135,8 +135,11 @@ Item {
 			this.volume = 0.0;
 
 		var player = this._getPlayer()
-		if (player)
+		if (player && player.setVolume) {
 			player.setVolume(this.volume)
+		} else {
+			log("Невозможно установить громкость! Плеер не был инициализирован или отсутствует метод setVolume")
+		}
 	}
 
 	///@private

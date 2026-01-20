@@ -41,10 +41,11 @@ if [ ! -d ${APP_DIR} ]; then
 	mkdir -p ${BUILD_DIR}
 	pushd ${BUILD_DIR}
 	cp -r ../qmlcore-android .
-	rm -r /qmlcore-android/.git
 	popd
 else
 	pushd ${BUILD_DIR}
+	rm -rf ./qmlcore-android/
+	cp -r ../qmlcore-android .
 	popd
 fi
 

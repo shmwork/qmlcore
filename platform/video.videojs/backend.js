@@ -104,8 +104,6 @@ Player.prototype._syncState = function() {
 		this.ui.progress = currentTime;
 		this.ui.duration = duration;
 		this.ui.ready = (readyState >= 3);
-		log('syncState -> paused:', this.ui.paused, 'waiting:', this.ui.waiting, 'seeking:', this.ui.seeking,
-			'readyState:', readyState, 'currentTime:', currentTime, 'duration:', duration);
 	} catch (e) {
 		log('syncState error', e);
 	}
