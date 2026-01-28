@@ -16,6 +16,7 @@ var Player = function(ui) {
 
 	var player = ui._context.createElement('video')
 	this._player = player
+	player.dom.style.zIndex = -1;
 
 	if (!shaka.Player.isBrowserSupported()) {
 		throw new Error("browser is not supported, backend should not have been registered")
@@ -226,11 +227,16 @@ Player.prototype.setVideoTrack = function(trackId) {
 Player.prototype.getSubtitles = function() {
 	var tracks = this.shakaPlayer.getTextTracks()
 	var subsTracks = []
+	subsTracks.push({
+		id: "off",
+		label: "Выкл"
+	})
 	for (var i = 0; i < tracks.length; ++i) {
 		var track = tracks[i]
 		subsTracks.push({
 			id: track.id,
 			active: track.active,
+			label: "Русский",
 			language: track.language
 		})
 	}
@@ -238,7 +244,7 @@ Player.prototype.getSubtitles = function() {
 }
 
 Player.prototype.setSubtitles = function(trackId) {
-	if (!trackId) {
+	if (trackId == "off") {
 		this.shakaPlayer.setTextTrackVisibility(false)
 		return
 	}
