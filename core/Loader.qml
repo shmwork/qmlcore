@@ -11,10 +11,14 @@ Item {
 	function discardItem() {
 		this._itemCompleted = false
 		var item = this.item
-		if (item) {
-			item.discard()
-			this.item = null
-		}
+		if (!item)
+			return
+
+		if (this.focusedChild === item)
+			this.focusedChild = null
+
+		item.discard()
+		this.item = null
 	}
 
 	///@private
@@ -46,6 +50,22 @@ Item {
 				throw new Error('unknown component used: ' + source)
 		}
 		return new ctor(this)
+	}
+
+	function _tryFocus () {
+		if (!this.visible)
+			return false
+
+		var item = this.item
+		if (item) {
+			if (item._tryFocus()) {
+				this._focusChild(item)
+				item._propagateFocusToParents()
+				return true
+			}
+		}
+
+		return $core.Item.prototype._tryFocus.call(this)
 	}
 
 	///@internal

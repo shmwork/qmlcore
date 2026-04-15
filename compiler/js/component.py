@@ -52,19 +52,32 @@ class component_generator(object):
 
 	@property
 	def local_name(self):
-		return self.class_name + 'Component'
+		return self.js_symbol_name + 'Component'
 
 	@property
 	def base_local_name(self):
-		return self.class_name + 'BaseComponent'
+		return self.js_symbol_name + 'BaseComponent'
 
 	@property
 	def proto_name(self):
-		return self.class_name + 'Prototype'
+		return self.js_symbol_name + 'Prototype'
 
 	@property
 	def base_proto_name(self):
-		return self.class_name + 'BasePrototype'
+		return self.js_symbol_name + 'BasePrototype'
+
+	@property
+	def js_symbol_name(self):
+		# Keep legacy symbol names for core/controls to preserve handwritten
+		# references like ObjectPrototype/ItemPrototype in framework sources.
+		# For app components (src.*), include package in symbol name to avoid
+		# collisions between same class names from different namespaces.
+		if self.package.startswith('src.'):
+			name = re.sub(r'[^0-9A-Za-z_$]', '_', self.name)
+			if name and name[0].isdigit():
+				name = '_' + name
+			return escape(name)
+		return self.class_name
 
 	@property
 	def loc(self):
