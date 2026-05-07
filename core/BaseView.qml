@@ -16,6 +16,7 @@ BaseLayout {
 	property real prerender: 0.5;	///< allocate additional delegates by viewport (prerender * horizontal/vertical view size) px
 	property enum positionMode		{ Contain, Center, Visible, Page, End, FixedCenter, FixedStart }; ///< position mode for auto-scrolling/position methods
 	property string visibilityProperty; ///< if this property is false, delegate is not created at all
+	property bool _bulkUpdating;
 	contentWidth: 1;				///< content width
 	contentHeight: 1;				///< content height
 	keyNavigationWraps: true;		///< key navigation wraps from end to beginning and vise versa
@@ -143,7 +144,18 @@ BaseLayout {
 		return true
 	}
 
+	function setModelAndCurrentIndex(rows, idx) {
+		if (!idx) idx = 0
+		this._bulkUpdating = true
+		this.model.assign(rows)
+		this.currentIndex = idx
+		this._bulkUpdating = false
+		this.focusCurrent()
+	}
+
 	onCurrentIndexChanged: {
+		if (this._bulkUpdating)
+			return
 		if (this.trace)
 			log("onCurrentIndexChanged", value)
 		this.focusCurrent()
