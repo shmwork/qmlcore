@@ -6,6 +6,10 @@ _globals.closeApp = function() {
 	fd.closeApp()
 }
 
+_globals.moveTaskToBack = function() {
+	fd.moveTaskToBack()
+}
+
 exports.init = function(ctx) {
 	log('backend initialization...')
 	var options = ctx.options
