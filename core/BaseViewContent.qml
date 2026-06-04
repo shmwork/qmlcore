@@ -4,7 +4,7 @@ Item {
 	onYChanged:		{ this.parent._scheduleLayout() }
 
 	constructor: {
-		this.style('will-change', 'scroll-position, transform, left, top')
+		// this.style('will-change', 'scroll-position, transform, left, top')
 	}
 
 	///@private silently updates scroll positions, because browser animates scroll

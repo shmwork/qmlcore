@@ -234,7 +234,7 @@ Object {
 
 	onXChanged,
 	onViewXChanged: {
-		var x = this.x + this.viewX
+		var x = this.x + this.viewX + (this._borderXAdjust || 0)
 		if (this.cssTranslatePositioning && !$manifest$cssDisableTransformations)
 			this.transform.translateX = x
 		else
@@ -244,7 +244,7 @@ Object {
 
 	onYChanged,
 	onViewYChanged: {
-		var y = this.y + this.viewY
+		var y = this.y + this.viewY + (this._borderYAdjust || 0)
 		if (this.cssTranslatePositioning && !$manifest$cssDisableTransformations)
 			this.transform.translateY = y
 		else
