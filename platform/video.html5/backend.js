@@ -192,6 +192,10 @@ Player.prototype.setSource = function(url) {
 }
 
 Player.prototype.play = function() {
+	if (this._storedSrc && !this.element.dom.src) {
+		this.element.dom.src = this._storedSrc
+		this._storedSrc = ""
+	}
 	this.element.dom.play()
 }
 
