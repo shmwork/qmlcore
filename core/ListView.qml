@@ -1,6 +1,7 @@
 ///single direction (vertical or horizontal) oriented view
 BaseView {
 	property enum orientation { Vertical, Horizontal };	///< orientation direction
+	property int overflowLeft: 0;
 
 	constructor: {
 		this._sizes = []
@@ -237,7 +238,9 @@ BaseView {
 			}
 
 			if (item) {
-				var visible = visibleInModel && (viewPos + s >= 0 && viewPos < size) //checking real delegate visibility, without prerender margin
+				var visible = visibleInModel &&
+					(viewPos + s >= -this.overflowLeft &&
+					 viewPos < size);
 
 				if (item.x + item.width > maxW)
 					maxW = item.width + item.x
