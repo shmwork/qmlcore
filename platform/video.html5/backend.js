@@ -34,7 +34,7 @@ Player.prototype.setEventListeners = function() {
 	player.on('pause', function() { ui.paused = dom.paused }.bind(ui))
 	player.on('ended', function() { ui.finished() }.bind(ui))
 	player.on('seeked', function() { log("seeked"); ui.seeking = false; ui.waiting = false }.bind(ui))
-	player.on('canplay', function() { log("canplay", dom.readyState); ui.ready = dom.readyState }.bind(ui))
+	player.on('canplay', function() { log("canplay", dom.readyState) }.bind(ui))
 	player.on('seeking', function() { log("seeking"); ui.seeking = true; ui.waiting = true }.bind(ui))
 	player.on('waiting', function() { log("waiting"); ui.waiting = true }.bind(ui))
 	player.on('stalled', function() { log("Was stalled", dom.networkState); ui.stalled = true }.bind(ui))
@@ -76,6 +76,8 @@ Player.prototype.setEventListeners = function() {
 		ui.stalled = false
 		if (!ui.seeking)
 			ui.progress = dom.currentTime
+		if (ui.progress)
+			ui.ready = true
 	}.bind(ui))
 
 	player.on('durationchange', function() {
