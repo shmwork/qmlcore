@@ -316,6 +316,7 @@ Item {
 
 	///@private
 	onSourceChanged: {
+		this.ready = false
 		var player = this._getPlayer()
 		if (player) {
 			log('setting source to', value)
