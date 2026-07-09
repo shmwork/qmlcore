@@ -79,8 +79,9 @@ DST_DIR=${BUILD_DIR}/app
 
 rm -rf ${DST_DIR}
 mkdir -p ${DST_DIR}
-# Создаём временный коммит
-git -C ${APP_DIR} commit -am "temp commit" --allow-empty || true
+# Создаём временный коммит (включая новые файлы) для git archive
+git -C ${APP_DIR} add -A
+git -C ${APP_DIR} commit -m "temp commit" --allow-empty || true
 
 # Экспортируем последнюю версию (включая изменения)
 git -C ${APP_DIR} archive HEAD | tar -x -C ${DST_DIR}

@@ -67,6 +67,9 @@ exports.createElement = function(ctx, tag, cls) {
 		case 'spinner':
 			el = new fd.Spinner()
 			break
+		case 'native-list':
+			el = new fd.NativeListView()
+			break
 		default:
 			el = new fd.Element()
 			break

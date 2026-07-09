@@ -2,10 +2,222 @@
 BaseView {
 	property enum orientation { Vertical, Horizontal };	///< orientation direction
 	property int overflowLeft: 0;
+	property bool useNativeList: false;					///< use Android RecyclerView renderer (channel-style rows)
+	property int nativeItemHeight: 0;					///< row height in pixels, 0 = delegate.height
+	signal itemActivated;
 
 	constructor: {
 		this._sizes = []
 		this._scrollDelta = 0
+		this._syncingNativeIndex = false
+		this._nativeListReady = false
+		this._nativeSyncedCount = -1
+	}
+
+	function getTag() {
+		if (this.useNativeList && this._nativeListAvailable())
+			return 'native-list'
+		return 'div'
+	}
+
+	function _nativeListAvailable() {
+		var ctx = this._context
+		if (!ctx || !ctx.system || !ctx.system.os)
+			return false
+		if (this.orientation !== this.Vertical)
+			return false
+		return ctx.system.os.toLowerCase() === 'android'
+	}
+
+	function _nativeListActive() {
+		return this.useNativeList && this._nativeListAvailable() && this.element && this.element.setItems
+	}
+
+	function _ensureNativeElement() {
+		if (!this.useNativeList || !this._nativeListAvailable())
+			return false
+		if (this.element && this.element.setItems)
+			return true
+		this._nativeListReady = false
+		this._createElement('native-list', this.getClass())
+		return this.element && this.element.setItems
+	}
+
+	function _scheduleLayout(skipPositioning) {
+		if (!this.recursiveVisible && !this.offlineLayout && !(this.useNativeList && this._nativeListAvailable()))
+			return
+		$core.BaseLayout.prototype._scheduleLayout.call(this, skipPositioning)
+	}
+
+	function _setupNativeList() {
+		if (this._nativeListReady || !this._ensureNativeElement())
+			return
+		this._nativeListReady = true
+		this.content.visible = false
+		var self = this
+		this.element.on('currentIndexChanged', function(index) {
+			if (self._syncingNativeIndex)
+				return
+			self._syncingNativeIndex = true
+			self.currentIndex = index
+			self._syncingNativeIndex = false
+		})
+		this.element.on('activated', function(index) {
+			if (self._syncingNativeIndex)
+				return
+			self._syncingNativeIndex = true
+			self.currentIndex = index
+			self._syncingNativeIndex = false
+			self.itemActivated(index)
+		})
+		if (this.element.setSelectionFocused)
+			this.element.setSelectionFocused(this.activeFocus)
+	}
+
+	function _syncNativeListMetrics() {
+		var model = this._modelAttached
+		if (!model || !this._ensureNativeElement())
+			return
+
+		this.element.setItemHeight(this._nativeItemHeight())
+		this.element.setItemSpacing(this.spacing || 0)
+
+		this.count = model.count
+		var itemHeight = this._nativeItemHeight()
+		var spacing = this.spacing || 0
+		var total = model.count > 0? model.count * itemHeight + (model.count - 1) * spacing: 0
+		this.contentHeight = total
+		this.contentWidth = this.width
+
+		if (this.width > 0)
+			this.style({ width: this.width })
+	}
+
+	function _processUpdates() {
+		if (this._nativeListActive()) {
+			this._processNativeModelUpdates()
+			return
+		}
+		$core.BaseView.prototype._processUpdates.call(this)
+	}
+
+	function _processNativeModelUpdates() {
+		var model = this._modelAttached
+		if (!model || !this._ensureNativeElement())
+			return
+
+		var rows = this._modelUpdate.rows
+		if (!rows || rows.length === 0)
+			return
+
+		this._setupNativeList()
+		this._syncNativeListMetrics()
+
+		if (this._nativeSyncedCount !== model.count)
+			return
+
+		var changed = []
+		for (var i = 0; i < rows.length; ++i) {
+			if (rows[i][1])
+				changed.push(i)
+			rows[i][0] = i
+			rows[i][1] = false
+		}
+		if (changed.length === 0)
+			return
+
+		if (changed.length === rows.length && this.element.refreshContent)
+			this.element.refreshContent(model._rows)
+		else if (this.element.updateRow) {
+			for (var j = 0; j < changed.length; ++j)
+				this.element.updateRow(changed[j], model.get(changed[j]))
+		}
+	}
+
+	function _nativeItemHeight() {
+		if (this.nativeItemHeight > 0)
+			return this.nativeItemHeight
+		if (this.delegate && this.delegate.height > 0)
+			return this.delegate.height
+		return 143
+	}
+
+	function _syncNativeList() {
+		var model = this._modelAttached
+		if (!model || !this._ensureNativeElement())
+			return
+
+		this._setupNativeList()
+		this._syncNativeListMetrics()
+
+		var rows = model._rows
+		if (!rows || rows.length !== model.count) {
+			rows = []
+			for (var i = 0; i < model.count; ++i)
+				rows.push(model.get(i))
+		}
+		this.element.setItems(rows)
+
+		if (this.currentIndex >= 0 && !this._syncingNativeIndex) {
+			this._syncingNativeIndex = true
+			this.element.setCurrentIndex(this.currentIndex)
+			this._syncingNativeIndex = false
+		}
+	}
+
+	function _layoutNativeList() {
+		var model = this._modelAttached
+		if (!model) {
+			this.layoutFinished()
+			return
+		}
+		if (this._nativeSyncedCount !== model.count) {
+			this._syncNativeList()
+			this._nativeSyncedCount = model.count
+			var rows = this._modelUpdate.rows
+			if (rows) {
+				for (var i = 0; i < rows.length; ++i) {
+					rows[i][0] = i
+					rows[i][1] = false
+				}
+			}
+		} else {
+			this._setupNativeList()
+			this._syncNativeListMetrics()
+			if (this.currentIndex >= 0 && !this._syncingNativeIndex) {
+				this._syncingNativeIndex = true
+				this.element.setCurrentIndex(this.currentIndex)
+				this._syncingNativeIndex = false
+			}
+		}
+		if (this.syncNativePosition)
+			this.syncNativePosition()
+		this.layoutFinished()
+	}
+
+	function focusCurrent() {
+		if (this.useNativeList && this._nativeListAvailable() && this._ensureNativeElement()) {
+			var model = this._modelAttached
+			var n = model? model.count: 0
+			if (n === 0)
+				return
+
+			var idx = this.currentIndex
+			if (idx < 0 || idx >= n) {
+				if (this.keyNavigationWraps)
+					this.currentIndex = (idx + n) % n
+				else
+					this.currentIndex = idx < 0? 0: n - 1
+				return
+			}
+			if (!this._syncingNativeIndex) {
+				this._syncingNativeIndex = true
+				this.element.setCurrentIndex(this.currentIndex)
+				this._syncingNativeIndex = false
+			}
+			return
+		}
+		$core.BaseView.prototype.focusCurrent.apply(this, arguments)
 	}
 
 	///@private
@@ -144,6 +356,11 @@ BaseView {
 
 	///@private
 	function _layout(noPrerender) {
+		if (this.useNativeList && this._nativeListAvailable()) {
+			this._layoutNativeList()
+			return
+		}
+
 		var model = this._modelAttached
 		if (!model) {
 			this.layoutFinished()
@@ -360,5 +577,24 @@ BaseView {
 
 	onCompleted: {
 		this._updateOverflow()
+		if (this.useNativeList && this._nativeListAvailable()) {
+			this.offlineLayout = true
+			this._ensureNativeElement()
+			this._scheduleLayout()
+		}
+	}
+
+	onUseNativeListChanged: {
+		if (value && this._nativeListAvailable()) {
+			this.offlineLayout = true
+			this._nativeSyncedCount = -1
+			this._ensureNativeElement()
+			this._scheduleLayout()
+		}
+	}
+
+	onActiveFocusChanged: {
+		if (this._nativeListActive() && this.element.setSelectionFocused)
+			this.element.setSelectionFocused(this.activeFocus)
 	}
 }

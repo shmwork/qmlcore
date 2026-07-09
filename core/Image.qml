@@ -11,6 +11,7 @@ Item {
 	property enum horizontalAlignment { AlignHCenter, AlignLeft, AlignRight };
 	property bool smooth: true;								///< if false, image will be pixelated
 	property bool preload: false;							///< image will be loaded even if it's not visible
+	property bool useOptimizedDomImage: false;				///< if true tries to render with <img>, falls back to background-image when unsupported
 
 	width: sourceWidth;
 	height: sourceHeight;
@@ -60,6 +61,11 @@ Item {
 	onWidthChanged,
 	onHeightChanged,
 	onFillModeChanged: {
+		if (this.status === ImageComponent.Ready) {
+			this._applyReadyStyle({ width: this.sourceWidth, height: this.sourceHeight })
+			this._updatePaintedSize()
+			return
+		}
 		this._scheduleLoad()
 	}
 
@@ -71,56 +77,122 @@ Item {
 	///@private
 	function _resetImage() {
 		this.style('background-image', '')
+		this._setDomImageSource('')
 	}
 
-	function _updatePaintedSize() {
-		var natW = this.sourceWidth, natH = this.sourceHeight
-		var w = this.width, h = this.height
-
-		if (natW <= 0 || natH <= 0 || w <= 0 || h <= 0) {
-			this.paintedWidth = 0
-			this.paintedHeight = 0
+	///@private
+	function _setDomImageSource(source) {
+		var element = this._domImageElement
+		if (!element)
 			return
-		}
+		element.setAttribute('src', source || '')
+	}
 
-		var crop
+	///@private
+	function _ensureDomImageElement() {
+		if (this._domImageElement)
+			return true
+		if (!this.element || !this.element.dom || typeof document === 'undefined' || !document.createElement)
+			return false
+
+		var domImage = document.createElement('img')
+		var imageElement = this._context.createElement(domImage)
+		this.element.append(imageElement)
+		this._domImageElement = imageElement
+		return true
+	}
+
+	///@private
+	function _setDomImageVisible(value) {
+		var element = this._domImageElement
+		if (!element)
+			return
+		element.style({
+			'display': value ? 'block' : 'none'
+		})
+	}
+
+	///@private
+	function _isOptimizedFillMode() {
 		switch(this.fillMode) {
-			case ImageComponent.PreserveAspectFit:
-				crop = false
-				break
-			case ImageComponent.PreserveAspectCrop:
-				crop = true
-				break
+			case ImageComponent.Stretch:
+				return true
 			default:
-				this.paintedWidth = w
-				this.paintedHeight = h
-				return
-		}
-
-		var targetRatio = w / h, srcRatio = natW / natH
-
-		var useWidth = crop? srcRatio < targetRatio: srcRatio > targetRatio
-		if (useWidth) { // img width aligned with target width
-			this.paintedWidth = w;
-			this.paintedHeight = w / srcRatio;
-		} else {
-			this.paintedHeight = h;
-			this.paintedWidth = h * srcRatio;
+				return false
 		}
 	}
 
 	///@private
-	function _imageLoaded(metrics) {
-		if (!metrics) {
-			this.status = ImageComponent.Error
-			return
+	function _shouldUseDomImage() {
+		if (!this.useOptimizedDomImage || !this._isOptimizedFillMode())
+			return false;
+		// ImageMixin paints into parent element, so keep background-image there
+		if (this.parent && this.element === this.parent.element)
+			return false
+		return this._ensureDomImageElement()
+	}
+
+	///@private
+	function _objectPosition() {
+		var x = '50%'
+		var y = '50%'
+
+		switch(this.horizontalAlignment) {
+			case ImageComponent.AlignLeft:
+				x = '0%'
+				break
+			case ImageComponent.AlignRight:
+				x = '100%'
+				break
 		}
 
-		var style = { 'background-image': 'url("' + this.source + '")' }
+		switch(this.verticalAlignment) {
+			case ImageComponent.AlignTop:
+				y = '0%'
+				break
+			case ImageComponent.AlignBottom:
+				y = '100%'
+				break
+		}
 
+		return x + ' ' + y
+	}
+
+	///@private
+	function _objectFit() {
+		switch(this.fillMode) {
+			case ImageComponent.Stretch:
+			default:
+				return 'fill'
+		}
+	}
+
+	///@private
+	function _applyDomImageStyle() {
+		var element = this._domImageElement
+		if (!element)
+			return
+
+		element.style({
+			'position': 'absolute',
+			'left': 0,
+			'top': 0,
+			'width': '100%',
+			'height': '100%',
+			'border': 0,
+			'padding': 0,
+			'margin': 0,
+			'pointer-events': 'none',
+			'object-fit': this._objectFit(),
+			'object-position': this._objectPosition(),
+			'image-rendering': this.smooth? 'auto': 'pixelated'
+		})
+	}
+
+	///@private
+	function _applyBackgroundImageStyle(metrics) {
+		var style = { 'background-image': 'url("' + this.source + '")' }
 		var natW = metrics.width, natH = metrics.height
-		this.sourceWidth = natW
-		this.sourceHeight = natH
 
 		switch(this.horizontalAlignment) {
 			case ImageComponent.AlignHCenter:
@@ -179,8 +251,82 @@ Item {
 		}
 		style['image-rendering'] = this.smooth? 'auto': 'pixelated'
 		this.style(style)
+	}
+
+	///@private
+	function _applyReadyStyle(metrics) {
+		if (this._shouldUseDomImage()) {
+			this._setDomImageVisible(true)
+			this._applyDomImageStyle()
+			this._setDomImageSource(this.source)
+			this.style('background-image', '')
+			return
+		}
+
+		this._setDomImageVisible(false)
+		this._setDomImageSource('')
+		this._applyBackgroundImageStyle(metrics)
+	}
+
+	function _updatePaintedSize() {
+		var natW = this.sourceWidth, natH = this.sourceHeight
+		var w = this.width, h = this.height
+
+		if (natW <= 0 || natH <= 0 || w <= 0 || h <= 0) {
+			this.paintedWidth = 0
+			this.paintedHeight = 0
+			return
+		}
+
+		var crop
+		switch(this.fillMode) {
+			case ImageComponent.PreserveAspectFit:
+				crop = false
+				break
+			case ImageComponent.PreserveAspectCrop:
+				crop = true
+				break
+			default:
+				this.paintedWidth = w
+				this.paintedHeight = h
+				return
+		}
+
+		var targetRatio = w / h, srcRatio = natW / natH
+
+		var useWidth = crop? srcRatio < targetRatio: srcRatio > targetRatio
+		if (useWidth) { // img width aligned with target width
+			this.paintedWidth = w;
+			this.paintedHeight = w / srcRatio;
+		} else {
+			this.paintedHeight = h;
+			this.paintedWidth = h * srcRatio;
+		}
+	}
+
+	///@private
+	function _imageLoaded(metrics) {
+		if (!metrics) {
+			this.status = ImageComponent.Error
+			return
+		}
+
+		var natW = metrics.width, natH = metrics.height
+		this.sourceWidth = natW
+		this.sourceHeight = natH
+		this._applyReadyStyle(metrics)
 
 		this.status = ImageComponent.Ready
 		this._updatePaintedSize()
+	}
+
+	onHorizontalAlignmentChanged,
+	onVerticalAlignmentChanged,
+	onSmoothChanged,
+	onUseOptimizedDomImageChanged: {
+		if (this.status === ImageComponent.Ready) {
+			this._applyReadyStyle({ width: this.sourceWidth, height: this.sourceHeight })
+			this._updatePaintedSize()
+		}
 	}
 }
