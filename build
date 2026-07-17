@@ -251,8 +251,7 @@ def build(root, platform, apps, app, manifest):
 	def discover_package(dname):
 		package = os.path.normpath(dname)
 		try:
-			with open(os.path.join(package, '.manifest')) as f:
-				package_manifest = mf.load(f)
+			package_manifest = mf.load(os.path.join(package, '.manifest'))
 			return package_manifest.public
 		except:
 			return False
@@ -262,9 +261,8 @@ def build(root, platform, apps, app, manifest):
 	platform_path = find_platform_path(root, plugins_path, platform)
 	templates = manifest.templates
 
-	with open(path.join(platform_path, '.manifest')) as f:
-		platform_manifest = mf.load(f)
-		templates = platform_manifest.templates
+	platform_manifest = mf.load(path.join(platform_path, '.manifest'))
+	templates = platform_manifest.templates
 
 	if not platform_manifest.standalone:
 		raise Exception('%s is not a standalone platform' %platform)
@@ -289,9 +287,8 @@ def build(root, platform, apps, app, manifest):
 			subplatform_path = find_platform_path(root, plugins_path, subplatform)
 			subplatform_paths[subplatform] = subplatform_path
 
-			with open(path.join(subplatform_path, '.manifest')) as f:
-				subplatform_manifest = mf.load(f)
-				subplatforms_manifests.insert(0, subplatform_manifest)
+			subplatform_manifest = mf.load(path.join(subplatform_path, '.manifest'))
+			subplatforms_manifests.insert(0, subplatform_manifest)
 
 			deps = subplatform_deps.setdefault(subplatform, set())
 			deps.update(subplatform_manifest.requires)
@@ -410,9 +407,8 @@ def build(root, platform, apps, app, manifest):
 
 try:
 	if not args.inline_manifest:
-		with open(args.manifest) as f:
-			manifest = mf.load(f)
-			manifest_path = '.manifest'
+		manifest = mf.load(args.manifest)
+		manifest_path = '.manifest'
 	else:
 		manifest = mf.loads(args.inline_manifest)
 except IOError:

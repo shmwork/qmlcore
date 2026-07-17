@@ -1,6 +1,7 @@
 from builtins import object
 
 import json
+from io import open as _open
 
 def _get_property(obj, name, default = None):
 	if '.' in name:
@@ -120,8 +121,12 @@ class Manifest(object):
 	def export_module(self):
 		return self.data.get('export_module', False)
 
-def load(f):
-	return Manifest(json.load(f, object_pairs_hook = _pair_hook))
+def load(source):
+	# path всегда UTF-8: на Windows locale=cp1251 ломает кириллицу в title (Уфанет → РЈС„Р°РЅРµС‚)
+	if hasattr(source, 'read'):
+		return Manifest(json.load(source, object_pairs_hook = _pair_hook))
+	with _open(source, encoding='utf-8') as f:
+		return Manifest(json.load(f, object_pairs_hook = _pair_hook))
 
 def loads(s):
 	return Manifest(json.loads(s, object_pairs_hook = _pair_hook))
