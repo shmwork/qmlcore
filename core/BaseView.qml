@@ -362,23 +362,23 @@ BaseLayout {
 		var w = this.width
 		var cmr = this.contentMargin.right
 		var cml = this.contentMargin.left
+		var atCenter = x - (w + cml) / 2 + iw / 2
+		var minX = -cml
+		var maxX = this.contentWidth - w + cmr
 
-		var atCenter = x - w / 2 + iw / 2
-		if (iw > w)
-			this.contentX = centerOversized? atCenter: x
+		if (iw > w - cml - cmr)
+			this.contentX = centerOversized? atCenter: x - cml
 		else if (this.positionMode === this.FixedCenter)
 			this.contentX = atCenter
 		else if (this.positionMode === this.FixedStart)
 			this.contentX = x - cml
-		else if (center && this.contentWidth > w)
-			this.contentX = atCenter < -cml ? -cml : x > this.contentWidth - w / 2 - iw / 2 + cmr ? this.contentWidth - w + cmr : atCenter
-		// else if (center)
-			// this.contentX = atCenter
+		else if (center && this.contentWidth > w - cml - cmr)
+			this.contentX = atCenter < minX ? minX : atCenter > maxX ? maxX : atCenter
 		else if (x <= cml)
-			this.contentX = -cml
-		else if (x - cx <= 0)
-			this.contentX = x
-		else if (x - cx + iw > w)
+			this.contentX = minX
+		else if (x - cx <= cml)
+			this.contentX = x - cml
+		else if (x - cx + iw > w - cmr)
 			this.contentX = x + iw - w + cmr
 	}
 
@@ -389,21 +389,23 @@ BaseLayout {
 		var h = this.height
 		var cmt = this.contentMargin.top
 		var cmb = this.contentMargin.bottom
+		var atCenter = y - (h + cmt - cmb) / 2 + ih / 2
+		var minY = -cmt
+		var maxY = this.contentHeight - h + cmb
 
-		var atCenter = y - h / 2 + ih / 2
-		if (ih > h)
-			this.contentY = centerOversized? atCenter: y
+		if (ih > h - cmt - cmb)
+			this.contentY = centerOversized? atCenter: y - cmt
 		else if (this.positionMode === this.FixedCenter)
 			this.contentY = atCenter
 		else if (this.positionMode === this.FixedStart)
 			this.contentY = y - cmt
-		else if (center && this.contentHeight > h)
-			this.contentY = atCenter < -cmt ? -cmt : y > this.contentHeight - h / 2 - ih / 2 + cmb ? this.contentHeight - h + cmb : atCenter
+		else if (center && this.contentHeight > h - cmt - cmb)
+			this.contentY = atCenter < minY ? minY : atCenter > maxY ? maxY : atCenter
 		else if (y <= cmt)
-			this.contentY = -cmt
-		else if (y - cy <= 0)
-			this.contentY = y
-		else if (y - cy + ih + cmb > h)
+			this.contentY = minY
+		else if (y - cy <= cmt)
+			this.contentY = y - cmt
+		else if (y - cy + ih > h - cmb)
 			this.contentY = y + ih - h + cmb
 	}
 

@@ -1,7 +1,6 @@
 ///single direction (vertical or horizontal) oriented view
 BaseView {
 	property enum orientation { Vertical, Horizontal };	///< orientation direction
-	property int overflowLeft: 0;
 
 	constructor: {
 		this._sizes = []
@@ -13,18 +12,22 @@ BaseView {
 		var horizontal = this.orientation === this.Horizontal
 		var x, y
 		if (horizontal && this.contentWidth > this.width) {
+			var cml = this.contentMargin.left
+			var cmr = this.contentMargin.right
 			x = this.contentX + dx
-			if (x < 0)
-				x = 0
-			else if (x > this.contentWidth - this.width)
-				x = this.contentWidth - this.width
+			if (x < -cml)
+				x = -cml
+			else if (x > this.contentWidth - this.width + cmr)
+				x = this.contentWidth - this.width + cmr
 			this.contentX = x
 		} else if (!horizontal && this.contentHeight > this.height) {
+			var cmt = this.contentMargin.top
+			var cmb = this.contentMargin.bottom
 			y = this.contentY + dy
-			if (y < 0)
-				y = 0
-			else if (y > this.contentHeight - this.height)
-				y = this.contentHeight - this.height
+			if (y < -cmt)
+				y = -cmt
+			else if (y > this.contentHeight - this.height + cmb)
+				y = this.contentHeight - this.height + cmb
 			this.contentY = y
 		}
 	}
@@ -176,8 +179,10 @@ BaseView {
 		var currentIndex = this.currentIndex
 		var discardDelegates = !noPrerender
 		var prerender = noPrerender? 0: this.prerender * size
-		var leftMargin = -prerender
-		var rightMargin = size + prerender
+		var overflowBefore = horizontal ? this.contentMargin.left : this.contentMargin.top
+		var overflowAfter = horizontal ? this.contentMargin.right : this.contentMargin.bottom
+		var leftMargin = -prerender - overflowBefore
+		var rightMargin = size + prerender + overflowAfter
 
 		if (sizes.length > items.length) {
 			///fixme: override model update api to make sizes stable
@@ -239,8 +244,8 @@ BaseView {
 
 			if (item) {
 				var visible = visibleInModel &&
-					(viewPos + s >= -this.overflowLeft &&
-					 viewPos < size);
+					(viewPos + s >= -overflowBefore &&
+					 viewPos < size + overflowAfter);
 
 				if (item.x + item.width > maxW)
 					maxW = item.width + item.x
