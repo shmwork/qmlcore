@@ -51,8 +51,13 @@ Item {
 
 		this.status = this.Loading
 		var ctx = this._context
-		var callback = this._imageLoaded.bind(this)
-		ctx.backend.loadImage(this, ctx.wrapNativeCallback(callback))
+		var self = this
+		var requestedSource = self.source
+		ctx.backend.loadImage(self, ctx.wrapNativeCallback(function(metrics) {
+			if (requestedSource !== self.source)
+				return; // устаревший callback
+			self._imageLoaded(metrics)
+		}));
 	}
 
 	onPreloadChanged,
