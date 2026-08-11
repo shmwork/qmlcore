@@ -84,14 +84,7 @@ exports.initImage = function(image) {
 	image._attachElement(new fd.Image())
 }
 
-var ImageStatusNull			= 0
-var ImageStatusLoaded		= 1
-var ImageStatusUnloaded		= 2
-var ImageStatusError		= 3
-
-
 exports.loadImage = function(image, callback) {
-	image.status = ImageStatusNull
 	image.element.load(image.source, callback)
 }
 
