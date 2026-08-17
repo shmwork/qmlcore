@@ -141,6 +141,8 @@ Object {
 
 	/** @private */
 	function _subscribe(src) {
+		if (!src)
+			return
 		var items = this._items
 		//connect only once per item
 		if (items.indexOf(src) < 0) {
@@ -152,7 +154,7 @@ Object {
 	onLeftChanged: {
 		this._scheduleUpdate()
 		var left = this._getAnchor('left')
-		if (left === null)
+		if (!left || !left[0])
 			return
 
 		var item = this.parent
@@ -168,7 +170,7 @@ Object {
 	onRightChanged: {
 		this._scheduleUpdate()
 		var right = this._getAnchor('right')
-		if (right === null)
+		if (!right || !right[0])
 			return
 
 		var item = this.parent
@@ -184,7 +186,7 @@ Object {
 	onHorizontalCenterChanged: {
 		this._scheduleUpdate()
 		var hc = this._getAnchor('horizontalCenter')
-		if (hc === null)
+		if (!hc || !hc[0])
 			return
 
 		var item = this.parent
@@ -200,7 +202,7 @@ Object {
 	onTopChanged: {
 		this._scheduleUpdate()
 		var top = this._getAnchor('top')
-		if (top === null)
+		if (!top || !top[0])
 			return
 
 		var item = this.parent
@@ -216,7 +218,7 @@ Object {
 	onBottomChanged: {
 		this._scheduleUpdate()
 		var bottom = this._getAnchor('bottom')
-		if (bottom === null)
+		if (!bottom || !bottom[0])
 			return
 
 		var item = this.parent
@@ -232,7 +234,7 @@ Object {
 	onVerticalCenterChanged: {
 		this._scheduleUpdate()
 		var vc = this._getAnchor('verticalCenter')
-		if (vc === null)
+		if (!vc || !vc[0])
 			return
 
 		var item = this.parent
@@ -247,7 +249,7 @@ Object {
 
 	onFillChanged: {
 		this._scheduleUpdate()
-		if (value === null)
+		if (!value)
 			return
 
 		var item = this.parent
@@ -261,7 +263,7 @@ Object {
 
 	onCenterInChanged: {
 		this._scheduleUpdate()
-		if (value === null)
+		if (!value)
 			return
 
 		var item = this.parent

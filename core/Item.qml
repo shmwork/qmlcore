@@ -25,6 +25,7 @@ Object {
 	property lazy effects: Effects { }
 	property lazy transform: Transform { }
 	property bool cssTranslatePositioning;
+	property bool cssRoundGeometry;
 	property bool cssNullTranslate3D;
 	property bool cssDelegateAlwaysVisibleOnAcceleratedSurfaces: true;
 	property bool cssPointerTouchEvents: false;
@@ -122,12 +123,62 @@ Object {
 		this._attachElement(context.createElement(tag, cls))
 	}
 
+	function _devicePixelRatio() {
+		var ctx = this._context
+		if (ctx && ctx.window && ctx.window.devicePixelRatio)
+			return ctx.window.devicePixelRatio
+		if (typeof window !== 'undefined' && window.devicePixelRatio)
+			return window.devicePixelRatio
+		return 1
+	}
+
+	function _snapDevice(value) {
+		var dpr = this._devicePixelRatio()
+		return Math.round(value * dpr) / dpr
+	}
+
 	function _itemX() {
-		return this.x + this.viewX + (this._borderXAdjust || 0)
+		var x = this.x + this.viewX + (this._borderXAdjust || 0)
+		return this.cssRoundGeometry ? this._snapDevice(x) : x
 	}
 
 	function _itemY() {
-		return this.y + this.viewY + (this._borderYAdjust || 0)
+		var y = this.y + this.viewY + (this._borderYAdjust || 0)
+		return this.cssRoundGeometry ? this._snapDevice(y) : y
+	}
+
+	function _cssWidth() {
+		var w = this.width + (this._borderWidthAdjust || 0)
+		if (!this.cssRoundGeometry)
+			return w
+		var x = this.x + this.viewX + (this._borderXAdjust || 0)
+		return Math.max(0, this._snapDevice(x + w) - this._snapDevice(x))
+	}
+
+	function _cssHeight() {
+		var h = this.height - this._topPadding + (this._borderHeightAdjust || 0)
+		if (!this.cssRoundGeometry)
+			return h
+		var y = this.y + this.viewY + (this._borderYAdjust || 0)
+		return Math.max(0, this._snapDevice(y + h) - this._snapDevice(y))
+	}
+
+	function _updateCssGeometry() {
+		var x = this._itemX()
+		var y = this._itemY()
+		var w = this._cssWidth()
+		var h = this._cssHeight()
+
+		if (this.cssTranslatePositioning && !$manifest$cssDisableTransformations) {
+			this.transform.translateX = x
+			this.transform.translateY = y
+		} else {
+			this.style('left', x)
+			this.style('top', y)
+		}
+		this.style('width', w)
+		this.style('height', h)
+		this.newBoundingBox()
 	}
 
 	/// map relative component coordinates to absolute screen ones
@@ -194,8 +245,12 @@ Object {
 
 	///@private
 	function _setSizeAdjust() {
-		var x = this.x + this.viewX + (this._borderXAdjust || 0)
-		var y = this.y + this.viewY + (this._borderYAdjust || 0)
+		if (this.cssRoundGeometry) {
+			this._updateCssGeometry()
+			return
+		}
+		var x = this._itemX()
+		var y = this._itemY()
 
 		if (this.cssTranslatePositioning && !$manifest$cssDisableTransformations) {
 			this.transform.translateX = x
@@ -231,17 +286,29 @@ Object {
 	onVisibleInViewChanged:	{ this._updateVisibility() }
 
 	onWidthChanged: {
-		this.style('width', value + (this._borderWidthAdjust || 0))
-		this.newBoundingBox()
+		if (this.cssRoundGeometry)
+			this._updateCssGeometry()
+		else {
+			this.style('width', value + (this._borderWidthAdjust || 0))
+			this.newBoundingBox()
+		}
 	}
 
 	onHeightChanged: {
-		this.style('height', value - this._topPadding + (this._borderHeightAdjust || 0))
-		this.newBoundingBox()
+		if (this.cssRoundGeometry)
+			this._updateCssGeometry()
+		else {
+			this.style('height', value - this._topPadding + (this._borderHeightAdjust || 0))
+			this.newBoundingBox()
+		}
 	}
 
 	onXChanged,
 	onViewXChanged: {
+		if (this.cssRoundGeometry) {
+			this._updateCssGeometry()
+			return
+		}
 		var x = this._itemX()
 		if (this.cssTranslatePositioning && !$manifest$cssDisableTransformations)
 			this.transform.translateX = x
@@ -252,6 +319,10 @@ Object {
 
 	onYChanged,
 	onViewYChanged: {
+		if (this.cssRoundGeometry) {
+			this._updateCssGeometry()
+			return
+		}
 		var y = this._itemY()
 		if (this.cssTranslatePositioning && !$manifest$cssDisableTransformations)
 			this.transform.translateY = y

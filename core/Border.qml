@@ -1,6 +1,6 @@
 /// class controlling border rendering
 Object {
-	property int width;		///< width of the border
+	property real width;		///< width of the border
 	property color color: "black";	///< color of the border
 	property enum style { None, Hidden, Dotted, Dashed, Solid, Double, Groove, Ridge, Inset, Outset }: Solid; ///< style of the border
 	property enum type { Inner, Outer, Center }; ///< whether box is inside bounding rect or not
@@ -9,10 +9,11 @@ Object {
 	property lazy right:	BorderSide	{ name: "right"; }		///< right border side
 	property lazy top:		BorderSide	{ name: "top"; }		///< top border side
 	property lazy bottom:	BorderSide	{ name: "bottom"; }		///< bottom border side
-
 	function _update() {
 		var parent = this.parent
-		var value = this.width
+		var raw = this.width
+		var dpr = (parent && parent._devicePixelRatio) ? parent._devicePixelRatio() : 1
+		var value = raw > 0 ? (parent && parent.cssRoundGeometry ? Math.max(1 / dpr, Math.round(raw * dpr) / dpr) : raw) : 0
 		parent.style('border-width', value)
 		switch(this.type) {
 		case this.Inner:
