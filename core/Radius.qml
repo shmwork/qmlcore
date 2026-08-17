@@ -10,11 +10,19 @@ Object {
 	}
 
 	_updateValue: {
+		var parent = this.parent
 		var radius = this.radius
 		var tl = this.topLeft || radius
 		var tr = this.topRight || radius
 		var bl = this.bottomLeft || radius
 		var br = this.bottomRight || radius
+		if (parent && parent.cssRoundGeometry) {
+			var dpr = parent._devicePixelRatio ? parent._devicePixelRatio() : 1
+			tl = Math.round(tl * dpr) / dpr
+			tr = Math.round(tr * dpr) / dpr
+			bl = Math.round(bl * dpr) / dpr
+			br = Math.round(br * dpr) / dpr
+		}
 		if (tl == tr && bl == br && tl == bl)
 			this.parent.style('border-radius', tl)
 		else

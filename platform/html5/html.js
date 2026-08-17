@@ -437,7 +437,6 @@ ElementPrototype.updateStyle = function(updated) {
 				value += unit
 			}
 		}
-
 		elementStyle[ruleName] = value
 	}
 /*
