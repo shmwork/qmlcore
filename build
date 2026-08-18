@@ -73,43 +73,44 @@ def call(*args, **kw):
 	if verbose:
 		print('calling', args, kw, file=sys.stderr)
 	if os.name == 'nt':
-		cmd = ['cmd', '/c'] +  list(args)[0]
-		code = subprocess.call(cmd)
+		cmd = ['cmd', '/c'] + list(args)[0]
+		code = subprocess.call(cmd, **kw)
 	else:
 		code = subprocess.call(*args, **kw)
-		if code != 0:
-			raise Exception('command %s failed with code %d' %(" ".join(*args), code))
+	if code != 0:
+		raise Exception('command %s failed with code %d' %(" ".join(list(args)[0]), code))
 
-def minify_uglify(out, src, root, app, platform, manifest):
-	call(["uglifyjs",
-		src,
-		"-c",
-		"-m"
-		], stdout = out)
+def minify_uglify(src, dst, root):
+	cfg = path.join(root, "compiler", "uglify.json")
+	call(["uglifyjs", src, "--no-module", "--webkit", "--config-file", cfg, "-o", dst])
 
-def minify_gcc(out, src, root, app, platform, manifest):
-	call(["java", "-jar", path.join(root, "compiler/gcc/compiler.jar"),
-		"--warning_level", "VERBOSE",
-		"--jscomp_off=missingProperties",
-		src], stdout = out)
+def minify_gcc(src, dst, root):
+	with open(dst, "w", encoding="utf-8") as out:
+		call(["java", "-jar", path.join(root, "compiler/gcc/compiler.jar"),
+			"--warning_level", "VERBOSE",
+			"--jscomp_off=missingProperties",
+			src], stdout=out)
 
 def minify(root, target, app, platform, manifest):
 	src = path.join(target, "qml.%s.js" % app)
-	dstname = "qml.%s.min.js" %app
+	dstname = "qml.%s.min.js" % app
+	dst = path.join(target, dstname)
 	tool = manifest.minify
 	if isinstance(tool, bool):
 		tool = 'uglify-js'
 
-	with open(path.join(target, dstname), "w") as out:
-		if tool == 'uglify-js':
-			try:
-				minify_uglify(out, src, root, app, platform, manifest)
-			except:
-				print("WARNING: you don't seem to have uglifyjs installed. please run `sudo npm install -g uglify-js`, falling back to gcc", file=sys.stderr)
-				tool = 'gcc'
+	if tool == 'uglify-js':
+		try:
+			minify_uglify(src, dst, root)
+		except Exception as ex:
+			print("WARNING: uglifyjs failed (%s), falling back to gcc" % ex, file=sys.stderr)
+			tool = 'gcc'
 
-		if tool == 'gcc':
-			minify_gcc(out, src, root, app, platform, manifest)
+	if tool == 'gcc':
+		minify_gcc(src, dst, root)
+
+	if not path.isfile(dst) or path.getsize(dst) == 0:
+		raise Exception('minify produced empty file: %s' % dst)
 
 	if not args.keep_temp:
 		os.remove(src)
