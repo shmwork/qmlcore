@@ -18,7 +18,17 @@ var Player = function(ui) {
 	ui.element = player
 	ui.parent.element.append(ui.element)
 
-	this.videojs = window.videojs(uniqueId, { "textTrackSettings": false })
+	this.videojs = window.videojs(uniqueId, { 
+		"textTrackSettings": false,
+		html5: {
+			vhs: { overrideNative: !window.webOS },
+			hls: { overrideNative: !window.webOS }
+		}
+	})
+
+	// Set fluid false and fill true to force the player to fill the absolute container
+	this.videojs.fluid(false);
+	this.videojs.fill(true);
 
 	this.videojs.width = 'auto'
 	this.videojs.height = 'auto'
@@ -53,6 +63,14 @@ var Player = function(ui) {
 
 	this.videojsContaner = document.getElementById(uniqueId)
 	this.videojsContaner.style.zIndex = -1
+	this.videojsContaner.style.width = '100%'
+	this.videojsContaner.style.height = '100%'
+	
+	if (window.webOS) {
+		player.dom.style.objectFit = "fill"
+		player.dom.style.width = '100%'
+		player.dom.style.height = '100%'
+	}
 }
 
 Player.prototype = Object.create(_globals.video.html5.backend.Player.prototype)
@@ -129,6 +147,23 @@ Player.prototype.setEventListeners = function() {
 	this._addListener(video, 'loadedmetadata', function() {
 		self.ui.duration = video.duration || self.ui.duration;
 		scheduleSync();
+		
+		// CSS FIX for old webOS aspect ratio issues with anamorphic video
+		if (window.webOS) {
+			var w = video.videoWidth;
+			var h = video.videoHeight;
+			if (w && h) {
+				var ratio = w / h;
+				log("video.js loaded video, intrinsic dimensions: " + w + "x" + h + " ratio: " + ratio);
+				// If video is 720x576 (ratio 1.25) and drawn 5:4, stretch it to 16:9
+				if (ratio > 1.2 && ratio < 1.3) {
+					log("Detected anamorphic SD 5:4 (e.g. 720x576). Applying aspect ratio fix (scaleX) for old WebOS.");
+					video.style.transform = "scaleX(1.4222)";
+				} else {
+					video.style.transform = "scaleX(1)";
+				}
+			}
+		}
 	});
 	this._addListener(video, 'canplay', function() {
 		self.ui.waiting = false;
@@ -230,7 +265,17 @@ Player.prototype.setSource = function(url) {
 	}
 
 	try {
-		this.videojs.src(media, { html5: { hls: { withCredentials: true } }, fluid: true, preload: 'none', techOrder: ["html5"] });
+		// Use fluid: false and fill: true to force 100% height/width and prevent collapsing to a square
+		this.videojs.src(media, { 
+			html5: { 
+				hls: { withCredentials: true, overrideNative: !window.webOS },
+				vhs: { withCredentials: true, overrideNative: !window.webOS }
+			}, 
+			fluid: false, 
+			fill: true, 
+			preload: 'none', 
+			techOrder: ["html5"] 
+		});
 	} catch (e_src) {
 		log("videojs.src failed", e_src);
 	}

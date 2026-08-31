@@ -17,6 +17,7 @@ var Player = function(ui) {
 	var player = ui._context.createElement('video')
 	this._player = player
 	player.dom.style.zIndex = -1;
+	player.dom.id = "shaka-player-element";
 
 	if (!shaka.Player.isBrowserSupported()) {
 		throw new Error("browser is not supported, backend should not have been registered")
@@ -29,8 +30,44 @@ var Player = function(ui) {
 	this.ui = ui
 	this.setEventListeners()
 
-	if (ui.element)
-		ui.element.remove()
+	// FIX для старых WebOS: если плеер сжимает 16:9 картинку в 5:4 (что часто бывает с SD каналами 720x576),
+	// мы принудительно растягиваем его по ширине через CSS transform.
+	player.dom.style.width = "100%";
+	player.dom.style.height = "100%";
+	if (window.webOS) {
+		player.dom.style.objectFit = "fill";
+		
+		player.dom.addEventListener('loadedmetadata', function() {
+			var w = player.dom.videoWidth;
+			var h = player.dom.videoHeight;
+			if (w && h) {
+				var ratio = w / h;
+				log("Shaka Player loaded video, intrinsic dimensions: " + w + "x" + h + " ratio: " + ratio);
+				// Если видео 720x576 (ratio 1.25), а мы хотим 16:9 (ratio 1.777),
+				// нужно растянуть его по ширине в 1.422 раза.
+				if (ratio > 1.2 && ratio < 1.3) {
+					log("Detected anamorphic SD 5:4 (e.g. 720x576). Applying aspect ratio fix (scaleX) for old WebOS.");
+					player.dom.style.transform = "scaleX(1.4222)";
+				} else {
+					player.dom.style.transform = "scaleX(1)";
+				}
+			}
+		});
+	}
+
+	if (ui.element && ui.element.remove) {
+		try {
+			ui.element.remove()
+		} catch(e) {
+			log("Failed to remove old ui.element", e)
+		}
+	} else if (ui.element && ui.element.dom && ui.element.dom.parentNode) {
+		try {
+			ui.element.dom.parentNode.removeChild(ui.element.dom)
+		} catch(e) {
+			log("Failed to removeChild from parent", e)
+		}
+	}
 	ui.element = player
 	ui.parent.element.append(ui.element)
 }
@@ -70,8 +107,13 @@ Player.prototype.setupDrm = function(type, options, callback, error) {
 
 Player.prototype.stop = function() {
 	log("stop player")
-	var self = this
-	this.shakaPlayer.unload()
+	try {
+		if (this.shakaPlayer) {
+			this.shakaPlayer.unload()
+		}
+	} catch(e) {
+		log("Error unloading shaka player", e)
+	}
 }
 
 Player.prototype.setSource = function(url) {
