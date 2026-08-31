@@ -4,11 +4,11 @@ Object {
 	property int timeout: 59000;	///< default timeout in ms
 
 	/**@param request:Object request object
-	send request using 'XMLHttpRequest' object*/
+	send request using 'XMLHttpRequest' object
+	@returns handle with abort() */
 	function ajax(request) {
 		var self = this;
 
-		// keep original callbacks
 		var origDone = request.done;
 		var origError = request.error;
 
@@ -17,20 +17,30 @@ Object {
 		if (origError)
 			origError = self._context.wrapNativeCallback(origError);
 
-		// resolve timeout: request.timeout overrides Request.timeout
 		var timeout = (typeof request.timeout !== 'undefined') ? request.timeout : self.timeout;
-		var timedOut = false;
+		var closed = false;
 		var timer = null;
+		var xhr = null;
 
-		// set loading flag
+		function close() {
+			if (closed)
+				return false;
+			closed = true;
+			if (timer) {
+				clearTimeout(timer);
+				timer = null;
+			}
+			self.loading = false;
+			return true;
+		}
+
 		self.loading = true;
 
-		// timeout handler
 		if (timeout && timeout > 0) {
 			timer = setTimeout(function() {
-				timedOut = true;
-				self.loading = false;
-				// call error callback (if provided) with a synthetic timeout response
+				if (!close())
+					return;
+				try { if (xhr && xhr.abort) xhr.abort(); } catch (e) {}
 				if (origError) {
 					try {
 						origError({
@@ -46,15 +56,9 @@ Object {
 			}, timeout);
 		}
 
-		// wrap done/error so we ignore late calls after timeout and clear timer
 		request.done = function(res) {
-			if (timedOut)
+			if (!close())
 				return;
-			if (timer) {
-				clearTimeout(timer);
-				timer = null;
-			}
-			self.loading = false;
 			if (origDone) {
 				try {
 					origDone(res);
@@ -65,13 +69,8 @@ Object {
 		};
 
 		request.error = function(res) {
-			if (timedOut)
+			if (!close())
 				return;
-			if (timer) {
-				clearTimeout(timer);
-				timer = null;
-			}
-			self.loading = false;
 			if (origError) {
 				try {
 					origError(res)
@@ -81,8 +80,25 @@ Object {
 			}
 		};
 
-		// keep passing along the timeout field so backend.ajax may also use it (optional)
-		self._context.backend.ajax(self, request);
+		xhr = self._context.backend.ajax(self, request);
+
+		var handle = {
+			abort: function() {
+				if (!close())
+					return;
+				try { if (xhr && xhr.abort) xhr.abort(); } catch (e) {}
+				if (origError) {
+					try {
+						origError({ type: "abort", target: { status: 0, response: "" } });
+					} catch (e) {
+						log("Error in abort error-callback:", e);
+					}
+				}
+			}
+		};
+
+		(self._activeXhrs || (self._activeXhrs = [])).push(handle);
+		return handle;
 	}
 
 	/**abort all in-flight requests created by this Request instance*/
@@ -91,10 +107,7 @@ Object {
 		if (!xhrs) return
 		this._activeXhrs = []
 		for (var i = 0; i < xhrs.length; i++) {
-			var xhr = xhrs[i]
-			if (xhr && xhr.readyState !== 4) {
-				try { xhr.abort() } catch (e) {}
-			}
+			try { xhrs[i].abort() } catch (e) {}
 		}
 	}
 }
