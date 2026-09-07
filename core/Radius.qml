@@ -9,14 +9,27 @@ Object {
 		RadiusPrototype.defaultProperty = 'radius';
 	}
 
+	function _number(value) {
+		var n = +value
+		if (n !== n || n < 0)
+			return 0
+		return n
+	}
+
+	function _corner(own, fallback) {
+		var n = this._number(own)
+		return n > 0 ? n : fallback
+	}
+
 	_updateValue: {
 		var parent = this.parent
-		var radius = this.radius
-		var tl = this.topLeft || radius
-		var tr = this.topRight || radius
-		var bl = this.bottomLeft || radius
-		var br = this.bottomRight || radius
-		if (parent && parent.cssRoundGeometry) {
+		var fallback = this._number(this.radius)
+		var tl = this._corner(this.topLeft, fallback)
+		var tr = this._corner(this.topRight, fallback)
+		var bl = this._corner(this.bottomLeft, fallback)
+		var br = this._corner(this.bottomRight, fallback)
+
+		if (parent.cssRoundGeometry) {
 			var dpr = parent._devicePixelRatio ? parent._devicePixelRatio() : 1
 			tl = Math.round(tl * dpr) / dpr
 			tr = Math.round(tr * dpr) / dpr
