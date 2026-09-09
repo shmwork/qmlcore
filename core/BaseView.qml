@@ -15,6 +15,7 @@ BaseLayout {
 	property bool nativeScrolling: context.system.device === context.system.Mobile; ///< allows native scrolling on mobile targets and shows native scrollbars
 	property real prerender: 0.1;	///< allocate additional delegates by viewport (prerender * horizontal/vertical view size) px
 	property enum positionMode		{ Contain, Center, Visible, Page, End, FixedCenter, FixedStart }; ///< position mode for auto-scrolling/position methods
+	property bool centerIgnoreContentMargin: false; ///< if true, Center/FixedCenter align to the view center and ignore contentMargin
 	property string visibilityProperty; ///< if this property is false, delegate is not created at all
 	property bool _bulkUpdating;
 	contentWidth: 1;				///< content width
@@ -362,7 +363,9 @@ BaseLayout {
 		var w = this.width
 		var cmr = this.contentMargin.right
 		var cml = this.contentMargin.left
-		var atCenter = x - (w + cml) / 2 + iw / 2
+		var atCenter = this.centerIgnoreContentMargin
+			? x - w / 2 + iw / 2
+			: x - (w + cml) / 2 + iw / 2
 		var minX = -cml
 		var maxX = this.contentWidth - w + cmr
 
@@ -389,7 +392,9 @@ BaseLayout {
 		var h = this.height
 		var cmt = this.contentMargin.top
 		var cmb = this.contentMargin.bottom
-		var atCenter = y - (h + cmt - cmb) / 2 + ih / 2
+		var atCenter = this.centerIgnoreContentMargin
+			? y - h / 2 + ih / 2
+			: y - (h + cmt - cmb) / 2 + ih / 2
 		var minY = -cmt
 		var maxY = this.contentHeight - h + cmb
 
