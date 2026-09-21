@@ -38,7 +38,7 @@ Object {
 			switch(this.orientation) {
 				default:
 				case this.Vertical: orientation = 'to bottom'; break
-				case this.Horizontal:	orientation = 'to left'; break
+				case this.Horizontal:	orientation = 'to right'; break
 				case this.BottomRight:	orientation = 'to bottom right'; break
 				case this.TopRight: orientation = 'to top right'; break
 				case this.Custom:	orientation = this.angle + 'deg'; break
