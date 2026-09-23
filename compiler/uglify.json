@@ -1,0 +1,16 @@
+{
+	"module": false,
+	"webkit": true,
+	"compress": {
+		"arrows": false,
+		"objects": false,
+		"module": false
+	},
+	"mangle": true,
+	"output": {
+		"beautify": false,
+		"semicolons": true,
+		"webkit": true,
+		"module": false
+	}
+}
