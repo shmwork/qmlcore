@@ -126,6 +126,8 @@ Item {
 			this._completedObjects = []
 			for(var i = 0, n = objects.length; i < n; ++i) {
 				var object = objects[i]
+				if (object.__discarded)
+					continue
 				try { object.__complete() }
 				catch(ex) { log('onCompleted failed', ex, ex.stack)}
 			}
