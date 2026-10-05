@@ -397,9 +397,15 @@ BaseLayout {
 			: y - (h + cmt - cmb) / 2 + ih / 2
 		var minY = -cmt
 		var maxY = this.contentHeight - h + cmb
-
+		if (this.contentHeight <= h - cmt - cmb
+			&& this.positionMode !== this.FixedCenter
+			&& this.positionMode !== this.FixedStart
+		) {
+			this.contentY = minY
+			return
+		}
 		if (ih > h - cmt - cmb)
-			this.contentY = centerOversized? atCenter: y - cmt
+			this.contentY = centerOversized ? atCenter : y - cmt
 		else if (this.positionMode === this.FixedCenter)
 			this.contentY = atCenter
 		else if (this.positionMode === this.FixedStart)
@@ -412,6 +418,12 @@ BaseLayout {
 			this.contentY = y - cmt
 		else if (y - cy + ih > h - cmb)
 			this.contentY = y + ih - h + cmb
+		if (this.positionMode !== this.FixedCenter && this.positionMode !== this.FixedStart) {
+			if (this.contentY < minY)
+				this.contentY = minY
+			else if (this.contentY > maxY)
+				this.contentY = maxY
+		}
 	}
 
 	function positionViewAtEndHorizontally() {
