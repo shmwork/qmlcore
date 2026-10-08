@@ -105,15 +105,7 @@ Item {
 		}
 	}
 
-	///@internal
-	///generally you don't need to call it yourself
-	///if you need to call it from native callback, use wrapNativeCallback method
-	function _processActions() {
-		if (!this._started || this._processingActions)
-			return
-
-		this._processingActions = true
-
+	function _drainActions() {
 		var invoker = this._asyncInvoker
 
 		while (this._delayedActions.length || this._completedObjects.length) {
@@ -132,10 +124,17 @@ Item {
 				catch(ex) { log('onCompleted failed', ex, ex.stack)}
 			}
 		}
-
-		this._processingActions = false
-		this.backend.tick(this)
 	}
+
+	function _processActions() {
+ 		if (!this._started || this._processingActions)
+ 			return
+
+ 		this._processingActions = true
+		this._drainActions()
+ 		this.backend.tick(this)
+		this._processingActions = false
+ 	}
 
 	///@private
 	function scheduleAction(action) {

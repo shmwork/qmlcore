@@ -560,6 +560,7 @@ exports.init = function(ctx) {
 	imageCache = new _globals.html5.cache.Cache(loadImage)
 
 	ctx._styleCache = new StyleCache()
+	ctx._textLayoutQueue = []
 	var options = ctx.options
 	var prefix = ctx._prefix
 	var divId = options.id
@@ -739,8 +740,6 @@ exports.layoutText = function(text) {
 	var wrap = text.wrapMode !== _globals.core.Text.NoWrap
 	var element = text.element
 
-	var dom = element.dom
-
 	var isHtml = text.textFormat === text.Html || text.text.search(/[\<\&]/) >= 0 //dubious check
 
 	if (!wrap && textCanvasContext !== null && !isHtml) {
@@ -762,12 +761,37 @@ exports.layoutText = function(text) {
 		layoutTextSetStyle(text, {})
 		return
 	}
-	var removedChildren = element.removeChildren(text)
 
-	if (!wrap)
-		text.element.style({ width: 'auto', height: 'auto', 'padding-top': 0 }) //no need to reset it to width, it's already there
+	//DOM measurement path: queue the text and measure all pending texts in a single
+	//batch at the end of the tick. Every individual measurement used to force
+	//a full synchronous document layout (style writes + scrollWidth read per text),
+	//which is the dominant layout cost on pages with many texts.
+	if (!text._textLayoutQueued) {
+		text._textLayoutQueued = true
+		ctx._textLayoutQueue.push(text)
+	}
+}
+
+///@private prepares queued text for measurement: style writes only, no reads
+var prepareTextLayout = function(text) {
+	var element = text.element
+	text._removedChildren = element.removeChildren(text)
+	if (text.wrapMode !== _globals.core.Text.NoWrap)
+		element.style({ 'height': 'auto', 'padding-top': 0})
 	else
-		text.element.style({ 'height': 'auto', 'padding-top': 0})
+		element.style({ width: 'auto', height: 'auto', 'padding-top': 0 }) //no need to reset it to width, it's already there
+}
+
+///@private reads measured sizes, no writes allowed in this phase
+var measureTextLayout = function(text) {
+	var dom = text.element.dom
+	text._measuredWidth = dom.scrollWidth + 1
+	text._measuredHeight = dom.scrollHeight + 1
+}
+
+///@private applies measured sizes and restores final styles: writes only
+var finalizeTextLayout = function(text) {
+	var element = text.element
 
 	//this is the source of rounding error. For instance you have 186.3px wide text, this sets width to 186px and causes wrapping
 	/*
@@ -779,21 +803,57 @@ exports.layoutText = function(text) {
 
 		Ignore all updates which subtract 1 from paintedWidth/Height
 	*/
-	var w = element.fullWidth() + 1, h = element.fullHeight() + 1
+	var w = text._measuredWidth, h = text._measuredHeight
 	if (w + 1 !== text.paintedWidth)
 		text.paintedWidth = w
 	if (h + 1 !== text.paintedHeight)
 		text.paintedHeight = h
 
 	var style
-	if (!wrap)
+	if (text.wrapMode === _globals.core.Text.NoWrap)
 		//restore original width value (see 'if' above), we're not passing 'height' as it's explicitly set by layoutTextSetStyles
 		style = { 'width': text.width }
 	else
 		style = { }
 
 	layoutTextSetStyle(text, style)
-	element.appendChildren(removedChildren)
+	var removedChildren = text._removedChildren
+	if (removedChildren !== undefined) {
+		text._removedChildren = undefined
+		element.appendChildren(removedChildren)
+	}
+}
+
+///@private processes all queued text layouts in three phases (writes, reads, writes),
+///so the browser performs O(1) document layouts per tick instead of O(texts)
+exports.processTextLayouts = function(ctx) {
+	var queue = ctx._textLayoutQueue
+	var n = queue.length
+	if (n === 0)
+		return
+
+	ctx._textLayoutQueue = []
+
+	var i, text
+	var prepared = []
+	for(i = 0; i < n; ++i) {
+		text = queue[i]
+		text._textLayoutQueued = false
+		if (text.__discarded)
+			continue
+		var element = text.element
+		if (!element || !element.dom)
+			continue
+		prepareTextLayout(text)
+		element.updateStyle()
+		prepared.push(text)
+	}
+
+	for(i = 0, n = prepared.length; i < n; ++i)
+		measureTextLayout(prepared[i]) //first read forces the only layout
+
+	for(i = 0, n = prepared.length; i < n; ++i)
+		finalizeTextLayout(prepared[i])
 }
 
 exports.run = function(ctx, onloadCallback) {
@@ -808,6 +868,8 @@ exports.run = function(ctx, onloadCallback) {
 
 exports.tick = function(ctx) {
 	//log('tick')
+	exports.processTextLayouts(ctx)
+	ctx._drainActions()
 	ctx._styleCache.apply()
 }
 
