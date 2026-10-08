@@ -17,6 +17,8 @@ BaseLayout {
 	property enum positionMode		{ Contain, Center, Visible, Page, End, FixedCenter, FixedStart }; ///< position mode for auto-scrolling/position methods
 	property bool centerIgnoreContentMargin: false; ///< if true, Center/FixedCenter align to the view center and ignore contentMargin
 	property string visibilityProperty; ///< if this property is false, delegate is not created at all
+	property bool delegatePooling: true;		///< reuse discarded delegates instead of destroying them (delegates must be rebind-safe: all row-dependent state must be driven by model bindings)
+	property int delegatePoolSize: 24;	///< maximum number of pooled delegates per view
 	property bool _bulkUpdating;
 	contentWidth: 1;				///< content width
 	contentHeight: 1;				///< content height
@@ -56,6 +58,7 @@ BaseLayout {
 	/// @private
 	constructor: {
 		this._items = []
+		this._delegatePool = []
 		this._modelUpdate = new $core.model.ModelUpdate()
 		this.__moveDir = 0
 	}
@@ -256,6 +259,28 @@ BaseLayout {
 
 		row.index = idx
 
+		var pool = this._delegatePool
+		if (this.delegatePooling && pool.length > 0) {
+			//reuse a pooled delegate: rebind its model row instead of
+			//destroying and recreating the whole component tree
+			item = pool.pop()
+			items[idx] = item
+			item._delegateReused = true
+
+			item._local.model = row
+			item._local.modelData = row
+			var _row = item._createPropertyStorage('_row')
+			_row.callOnChanged(item, '_row', row, {})
+
+			if (callback === undefined)
+				this.content.element.append(item.element)
+			else
+				callback.call(this, item)
+
+			item.recursiveVisible = this.recursiveVisible && item.visible && item.visibleInView
+			return item
+		}
+
 		item = this.delegate(this, row)
 		items[idx] = item
 		item.view = this
@@ -295,6 +320,12 @@ BaseLayout {
 
 	function discard() {
 		this._detach()
+		var pool = this._delegatePool
+		if (pool.length > 0) {
+			this._delegatePool = []
+			for(var i = 0, n = pool.length; i < n; ++i)
+				pool[i].discard()
+		}
 		$core.BaseLayout.prototype.discard.apply(this)
 	}
 
@@ -304,6 +335,18 @@ BaseLayout {
 			return
 		if (this.focusedChild === item)
 			this.focusedChild = null;
+		if (this.delegatePooling && !item.__discarded) {
+			var pool = this._delegatePool
+			if (pool.length < this.delegatePoolSize) {
+				if (item.focused) {
+					item._focusTree(false)
+					item.focused = false
+				}
+				item.element.remove()
+				pool.push(item)
+				return
+			}
+		}
 		item.discard()
 	}
 

@@ -315,6 +315,12 @@ BaseView {
 		var item = $core.BaseView.prototype._createDelegate.apply(this, arguments)
 		if (!item)
 			return item
+		if (item._delegateReused) {
+			//pooled delegate: size listeners from its first creation are still active,
+			//subscribing again would accumulate duplicate closures
+			item._delegateReused = false
+			return item
+		}
 		//connect both dimensions, because we calculate maxWidth/maxHeight in contentWidth/contentHeight
 		var update = function(horizontal) {
 			this._scheduleLayout()
