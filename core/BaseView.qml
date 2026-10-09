@@ -236,6 +236,34 @@ BaseLayout {
 		model.detachFrom(this)
 	}
 
+	function _clearPooledImages(item) {
+		if (!item || item.__discarded)
+			return
+		if (typeof item._resetImage === 'function') {
+			item._pooledSource = item.source
+			item.source = ""
+			item._resetImage()
+			if (item.status !== item.Null)
+				item.status = item.Null
+		}
+		var children = item.children
+		for (var i = 0, n = children ? children.length : 0; i < n; ++i)
+			this._clearPooledImages(children[i])
+	}
+
+	function _restorePooledImages(item) {
+		if (!item || item.__discarded)
+			return
+		if (typeof item._resetImage === 'function') {
+			if (!item.source && item._pooledSource)
+				item.source = item._pooledSource
+			item._pooledSource = ""
+		}
+		var children = item.children
+		for (var i = 0, n = children ? children.length : 0; i < n; ++i)
+			this._restorePooledImages(children[i])
+	}
+
 	onDelegateChanged: {
 		if (value)
 			value.visible = false
@@ -271,12 +299,14 @@ BaseLayout {
 			item._local.modelData = row
 			var _row = item._createPropertyStorage('_row')
 			_row.callOnChanged(item, '_row', row, {})
+			this._restorePooledImages(item)
 
 			if (callback === undefined)
 				this.content.element.append(item.element)
 			else
 				callback.call(this, item)
 
+			item.visibleInView = true
 			item.recursiveVisible = this.recursiveVisible && item.visible && item.visibleInView
 			return item
 		}
@@ -342,6 +372,9 @@ BaseLayout {
 					item._focusTree(false)
 					item.focused = false
 				}
+				item.visibleInView = false
+				item.recursiveVisible = false
+				this._clearPooledImages(item)
 				item.element.remove()
 				pool.push(item)
 				return
