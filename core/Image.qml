@@ -124,8 +124,16 @@ Item {
 		var style = { 'background-image': 'url("' + this.source + '")' }
 
 		var natW = metrics.width, natH = metrics.height
+		var keepW = this.width
+		var keepH = this.height
+		var pinW = keepW > 0 && keepW !== this.sourceWidth
+		var pinH = keepH > 0 && keepH !== this.sourceHeight
 		this.sourceWidth = natW
 		this.sourceHeight = natH
+		if (pinW)
+			this.width = keepW
+		if (pinH)
+			this.height = keepH
 
 		switch(this.horizontalAlignment) {
 			case ImageComponent.AlignHCenter:
