@@ -54,7 +54,7 @@ Object {
 							type: "timeout",
 							message: "request timeout",
 							timeout: timeout,
-							target: { status: 504, response: "" }
+							target: { status: "504C", response: "" }
 						});
 					} catch (e) {
 						console.log("Error in timeout error-callback:", e);
