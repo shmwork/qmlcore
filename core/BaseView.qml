@@ -299,6 +299,7 @@ BaseLayout {
 			item._local.modelData = row
 			var _row = item._createPropertyStorage('_row')
 			_row.callOnChanged(item, '_row', row, {})
+			this._updateDelegateIndex(idx)
 			this._restorePooledImages(item)
 
 			if (callback === undefined)
