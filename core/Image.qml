@@ -60,8 +60,15 @@ Item {
 		}));
 	}
 
+	onRecursiveVisibleChanged: {
+		if (this.recursiveVisible && this.status === this.Ready) {
+			this.status = this.Null
+		}
+
+		this._scheduleLoad()
+	}
+
 	onPreloadChanged,
-	onRecursiveVisibleChanged,
 	onWidthChanged,
 	onHeightChanged,
 	onFillModeChanged: {
