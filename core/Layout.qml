@@ -65,6 +65,15 @@ BaseLayout {
 
 	}
 
+	onFocusedChildChanged: {
+		if (value === null)
+			return
+
+		var idx = this.children.indexOf(value)
+		if (idx >= 0 && idx !== this.currentIndex)
+			this.currentIndex = idx
+	}
+
 	onCurrentIndexChanged: {
 		if (value >= 0 && value < this.children.length)
 			this.focusChild(this.children[value])
