@@ -43,8 +43,19 @@ Object {
 
 		self.loading = true;
 
-		if (timeout && timeout > 0) {
+		var startMono = (typeof performance !== 'undefined' && performance.now) ? performance.now() : null;
+
+		function scheduleTimeout(delay) {
 			timer = setTimeout(function() {
+				if (closed)
+					return;
+				if (startMono !== null) {
+					var elapsed = performance.now() - startMono;
+					if (elapsed >= 0 && elapsed < timeout - 1000) {
+						scheduleTimeout(Math.max(1000, Math.ceil(timeout - elapsed)));
+						return;
+					}
+				}
 				if (!close())
 					return;
 				try { if (xhr && xhr.abort) xhr.abort(); } catch (e) {}
@@ -60,7 +71,11 @@ Object {
 						console.log("Error in timeout error-callback:", e);
 					}
 				}
-			}, timeout);
+			}, delay);
+		}
+
+		if (timeout && timeout > 0) {
+			scheduleTimeout(timeout);
 		}
 
 		request.done = function(res) {
