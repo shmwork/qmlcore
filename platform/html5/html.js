@@ -861,9 +861,21 @@ exports.run = function(ctx, onloadCallback) {
 		log('Context: received message from ' + event.origin, event)
 		ctx.message(event)
 	})
-	ctx.window.on($manifest$expectRunContextEvent ? 'runContext' : 'load', function() {
-		onloadCallback()
-	})
+	var eventName = $manifest$expectRunContextEvent ? 'runContext' : 'load'
+	var started = false
+
+	var startContext = function() {
+		if (started) return
+		started = true
+ 		onloadCallback()
+	}
+
+	if (eventName === 'load' && document.readyState === 'complete') {
+		log('Context: document already loaded, starting immediately')
+		startContext()
+	} else {
+		ctx.window.on(eventName, startContext)
+	}
 }
 
 exports.tick = function(ctx) {
